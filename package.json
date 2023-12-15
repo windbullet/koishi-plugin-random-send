@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-random-send",
-  "description": "随机时间发送随机文本",
+  "description": "随机时刻发送随机任意文本",
   "version": "0.0.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -9,6 +9,11 @@
     "dist"
   ],
   "license": "MIT",
+  "homepage": "https://github.com/windbullet/koishi-plugin-random-send",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/windbullet/koishi-plugin-random-send.git"
+  },
   "scripts": {},
   "keywords": [
     "chatbot",
@@ -16,6 +21,6 @@
     "plugin"
   ],
   "peerDependencies": {
-    "koishi": "4.15.7"
+    "koishi": "^4.15.7"
   }
 }
