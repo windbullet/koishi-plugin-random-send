@@ -59,8 +59,7 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.on("ready", async () => {
     while(true) {
-      await sleep(Random.int(config.minInterval * 1000, config.maxInterval * 1000 + 1))
-      if (flag) break
+      await new Promise(res => ctx.setTimeout(res, Random.int(config.minInterval * 1000, config.maxInterval * 1000 + 1)))
       if (config.guildId.length === 0) {
         for (let bot of ctx.bots) {
           let guilds = []
@@ -93,10 +92,6 @@ export function apply(ctx: Context, config: Config) {
     }
   })
 
-  ctx.on("dispose", async () => {
-    flag = true
-  })
-
   ctx.guild().command("随机消息", "控制随机发送的消息")
 
   ctx.guild().command("随机消息.添加 <message:text>", "添加随机消息").alias("添加随机消息")
@@ -108,17 +103,17 @@ export function apply(ctx: Context, config: Config) {
         let id
         if (options.global) {
           if (config.globalMessageList.includes(message) || (await ctx.database.get("randomMessageData", {activeZone: "global", message: message})).length > 0) {
-            return h("quote", session.event.message.id) + "已存在于全局随机消息"
+            return h("quote", {id: session.event.message.id}) + "已存在于全局随机消息"
           }
           id = (await ctx.database.create("randomMessageData", {message: message, activeZone: "global"})).id
         } else if ((await ctx.database.get("randomMessageData", {activeZone: session.event.channel.id, message: message})).length > 0) {
-          return h("quote", session.event.message.id) + "已存在于本群随机消息"
+          return h("quote", {id: session.event.message.id}) + "已存在于本群随机消息"
         } else {
           id = (await ctx.database.create("randomMessageData", {message: message, activeZone: session.event.channel.id})).id
         }
-        return h("quote", session.event.message.id) + "添加成功，编号为：" + id
+        return h("quote", {id: session.event.message.id}) + "添加成功，编号为：" + id
       }
-      return h("quote", session.event.message.id) + "你没有权限"
+      return h("quote", {id: session.event.message.id}) + "你没有权限"
     })
 
   ctx.guild().command("随机消息.删除 <id:posint>", "删除随机消息").alias("删除随机消息")
@@ -128,12 +123,12 @@ export function apply(ctx: Context, config: Config) {
         let data = await ctx.database.get("randomMessageData", {id: id})
         if (data.length !== 0) {
           await ctx.database.remove("randomMessageData", {id: id})
-          return h("quote", session.event.message.id) + `编号：${id}
+          return h("quote", {id: session.event.message.id}) + `编号：${id}
 内容：${data[0].message}
 生效频道：${data[0].activeZone === "global" ? "全局" : session.event.channel.id}
 删除成功`
         }
-        return h("quote", session.event.message.id) + "编号不存在"
+        return h("quote", {id: session.event.message.id}) + "编号不存在"
       }
     })
 
@@ -150,11 +145,11 @@ export function apply(ctx: Context, config: Config) {
         .execute()
       if (dataPaged.length === 0) {
         if (data.length === 0) {
-          return h("quote", session.event.message.id) + "本频道没有生效的随机消息"
+          return h("quote", {id: session.event.message.id}) + "本频道没有生效的随机消息"
         }
-        return h("quote", session.event.message.id) + "该分页为空"
+        return h("quote", {id: session.event.message.id}) + "该分页为空"
       }
-      let result = `${h("quote", session.event.message.id)}\n`
+      let result = `${h("quote", {id: session.event.message.id})}\n`
       for (let i of dataPaged) {
         result += `[${i.activeZone === "global" ? "全局" : "本群"}]编号${i.id}：${i.message}
 `
