@@ -29,8 +29,7 @@ export const Config: Schema<Config> = Schema.object({
   guildId:Schema.array(Schema.string())
     .description("会发送消息的群聊ID，空则所有群聊"),
   globalMessageList:Schema.array(Schema.string())
-    .description("全局随机消息，但不会显示在随机消息列表里")
-    .required(),
+    .description("全局随机消息，但不会显示在随机消息列表里"),
   minInterval:Schema.number()
     .description("发送消息的最小间隔（秒）")
     .required(),
