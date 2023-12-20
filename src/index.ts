@@ -1,4 +1,4 @@
-import { Context, Schema, sleep, Random, h } from 'koishi'
+import { Context, Schema, sleep, Random, h, Dict } from 'koishi'
 
 export const name = 'random-send'
 
@@ -16,18 +16,20 @@ export interface RandomMessageData {
 
 export interface Config {
   admins: string[]
-  guildId: string[]
+  guildId: Dict
   globalMessageList: string[]
   minInterval: number
   maxInterval: number
   noRepeat: boolean
+  pageLimit: number
 }
 
 export const Config: Schema<Config> = Schema.object({
   admins: Schema.array(Schema.string())
     .description("允许在群内管理随机消息的人，一个项目填一个ID"),
-  guildId:Schema.array(Schema.string())
-    .description("会发送消息的群聊ID，空则所有群聊"),
+  guildId:Schema.dict(Schema.string())
+    .role("table")
+    .description("会发送消息的群聊ID，留空则代表该平台所有群聊\n\n键为平台（平台名以右下角状态栏为准），值为群号（群号间以半角逗号隔开）"),
   globalMessageList:Schema.array(Schema.string())
     .description("全局随机消息，但不会显示在随机消息列表里"),
   minInterval:Schema.number()
@@ -38,7 +40,10 @@ export const Config: Schema<Config> = Schema.object({
     .required(),
   noRepeat:Schema.boolean()
     .description("是否禁止群内连续两条随机消息相同")
-    .default(false)
+    .default(false),
+  pageLimit:Schema.number()
+    .description("列表每页显示多少条随机消息")
+    .default(5)
 })
 
 export const inject = ["database"]
@@ -54,14 +59,14 @@ export const usage = `
 
 export function apply(ctx: Context, config: Config) {
   extendTable(ctx)
-  let flag = false
   let lastSend = {}
 
   ctx.on("ready", async () => {
     while(true) {
       await new Promise(res => ctx.setTimeout(res, Random.int(config.minInterval * 1000, config.maxInterval * 1000 + 1)))
-      if (config.guildId.length === 0) {
-        for (let bot of ctx.bots) {
+      for (let bot of ctx.bots) {
+        let guilds: string = config.guildId[bot.platform]
+        if (guilds === undefined) {
           let guilds = []
           for await (let guild of bot.getGuildIter()) {
             guilds.push(guild)
@@ -75,10 +80,8 @@ export function apply(ctx: Context, config: Config) {
           } while (send === lastSend[guildId] && config.noRepeat)
           lastSend[guildId] = send
           await bot.sendMessage(guildId, send)
-        }
-      } else {
-        for (let bot of ctx.bots) {
-          let guildId = Random.pick(config.guildId)
+        } else {
+          let guildId = Random.pick(guilds.split(","))
           let data = await ctx.database.get("randomMessageData", {$or: [{activeZone: "global"}, {activeZone: guildId}]})
           let superMessageList = config.globalMessageList.concat(data.map((value) => value.message))
           let send: string
@@ -87,7 +90,7 @@ export function apply(ctx: Context, config: Config) {
           } while (send === lastSend[guildId] && config.noRepeat)
           lastSend[guildId] = send
           await bot.sendMessage(guildId, send)
-        }
+        } 
       }
     }
   })
@@ -139,8 +142,8 @@ export function apply(ctx: Context, config: Config) {
       let dataPaged = await ctx.database
         .select("randomMessageData")
         .where({$or: [{activeZone: "global"}, {activeZone: session.event.channel.id}]})
-        .limit(5)
-        .offset((page - 1) * 5)
+        .limit(config.pageLimit)
+        .offset((page - 1) * config.pageLimit)
         .orderBy("id", "desc")
         .execute()
       if (dataPaged.length === 0) {
