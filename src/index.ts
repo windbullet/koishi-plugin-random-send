@@ -65,7 +65,7 @@ export function apply(ctx: Context, config: Config) {
     while(true) {
       await new Promise(res => ctx.setTimeout(res, Random.int(config.minInterval * 1000, config.maxInterval * 1000 + 1)))
       for (let bot of ctx.bots) {
-        let guilds: string = config.guildId[bot.platform]
+        let guilds = config.guildId[bot.platform]
         if (guilds === undefined) {
           let guilds = []
           for await (let guild of bot.getGuildIter()) {
@@ -87,9 +87,9 @@ export function apply(ctx: Context, config: Config) {
           let send: string
           do {
             send = Random.pick([...new Set(superMessageList)])
-          } while (send === lastSend[guildId] && config.noRepeat)
-          lastSend[guildId] = send
-          await bot.sendMessage(guildId, send)
+          } while (send === lastSend[guildId as string] && config.noRepeat)
+          lastSend[guildId as string] = send
+          await bot.sendMessage(guildId as string, send)
         } 
       }
     }
