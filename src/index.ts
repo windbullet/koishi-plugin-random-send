@@ -109,6 +109,7 @@ export function apply(ctx: Context, config: Config) {
             lastSend[guildId as string] = send
             try {
               await bot.sendMessage(guildId as string, send)
+              break
             } catch (e) { 
               let channels = []
               for await (let channel of bot.getChannelIter(guildId as string)) {
