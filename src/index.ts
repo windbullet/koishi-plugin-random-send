@@ -66,6 +66,7 @@ export function apply(ctx: Context, config: Config) {
       await new Promise(res => ctx.setTimeout(res, Random.int(config.minInterval * 1000, config.maxInterval * 1000 + 1)))
       for (let bot of ctx.bots) {
         let guilds = config.guildId[bot.platform]
+        console.log(guilds)
         if (guilds === undefined) {
           let guilds = []
           for await (let guild of bot.getGuildIter()) {
@@ -79,7 +80,16 @@ export function apply(ctx: Context, config: Config) {
             send = Random.pick([...new Set(superMessageList)])
           } while (send === lastSend[guildId] && config.noRepeat)
           lastSend[guildId] = send
-          await bot.sendMessage(guildId, send)
+          try {
+            await bot.sendMessage(guildId, send)
+          } catch (e) {
+            let channels = []
+            for await (let channel of bot.getChannelIter(guildId)) {
+              channels.push(channel)
+            }
+            let channelId = Random.pick(channels).id
+            await bot.sendMessage(channelId, send)
+          }
         } else {
           let guildId = Random.pick(guilds.split(","))
           let data = await ctx.database.get("randomMessageData", {$or: [{activeZone: "global"}, {activeZone: guildId}]})
@@ -89,7 +99,17 @@ export function apply(ctx: Context, config: Config) {
             send = Random.pick([...new Set(superMessageList)])
           } while (send === lastSend[guildId as string] && config.noRepeat)
           lastSend[guildId as string] = send
-          await bot.sendMessage(guildId as string, send)
+          try {
+            await bot.sendMessage(guildId as string, send)
+          } catch (e) { 
+            let channels = []
+            for await (let channel of bot.getChannelIter(guildId as string)) {
+              channels.push(channel)
+            }
+            let channelId = Random.pick(channels).id
+            await bot.sendMessage(channelId, send)
+          }
+
         } 
       }
     }
@@ -157,7 +177,7 @@ export function apply(ctx: Context, config: Config) {
         result += `[${i.activeZone === "global" ? "全局" : "本群"}]编号${i.id}：${i.message}
 `
       }
-      result += `\n第${page ?? 1}/${Math.ceil(data.length / 5)}页`
+      result += `\n第${page ?? 1}/${Math.ceil(data.length / config.pageLimit)}页`
       return result
     })
 }
