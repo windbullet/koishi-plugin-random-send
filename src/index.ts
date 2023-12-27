@@ -29,7 +29,7 @@ export const Config: Schema<Config> = Schema.object({
     .description("允许在群内管理随机消息的人，一个项目填一个ID"),
   guildId:Schema.dict(Schema.string())
     .role("table")
-    .description("会发送消息的群聊ID，留空则代表该平台所有群聊\n\n键为平台（平台名以右下角状态栏为准），值为群号（群号间以半角逗号隔开）"),
+    .description("会发送消息的群聊ID，不添加项目则代表该平台所有群聊，不填写群号则代表不在该平台发消息\n\n键为平台（平台名以右下角状态栏为准），值为群号（群号间以半角逗号隔开）"),
   globalMessageList:Schema.array(Schema.string())
     .description("全局随机消息，但不会显示在随机消息列表里"),
   minInterval:Schema.number()
