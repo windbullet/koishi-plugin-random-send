@@ -29,7 +29,7 @@ export const Config: Schema<Config> = Schema.object({
     .description("允许在群内管理随机消息的人，一个项目填一个ID"),
   guildId:Schema.dict(Schema.string())
     .role("table")
-    .description("会发送消息的群聊ID，不添加项目则代表该平台所有群聊，不填写群号则代表不在该平台发消息\n\n键为平台（平台名以右下角状态栏为准），值为群号（群号间以半角逗号隔开）"),
+    .description("会发送消息的群聊ID，不添加项目则代表该平台所有频道，不填写频道ID则代表不在该平台发消息\n\n键为平台（平台名以右下角状态栏为准），值为频道ID（频道ID间以半角逗号隔开）"),
   globalMessageList:Schema.array(Schema.string())
     .description("全局随机消息，但不会显示在随机消息列表里"),
   minInterval:Schema.number()
@@ -98,6 +98,7 @@ export function apply(ctx: Context, config: Config) {
             }
           }
         } else {
+          if (guilds.length === 0) continue
           while (true) {
             let guildId = Random.pick(guilds.split(","))
             let data = await ctx.database.get("randomMessageData", {$or: [{activeZone: "global"}, {activeZone: guildId}]})
