@@ -1,4 +1,4 @@
-import { Context, Schema, sleep, Random, h, Dict } from 'koishi'
+import { Context, Schema, sleep, Random, h, Dict, Logger } from 'koishi'
 
 export const name = 'random-send'
 
@@ -22,6 +22,7 @@ export interface Config {
   maxInterval: number
   noRepeat: boolean
   pageLimit: number
+  maxRetry: number
 }
 
 export const Config: Schema<Config> = Schema.object({
@@ -29,7 +30,7 @@ export const Config: Schema<Config> = Schema.object({
     .description("允许在群内管理随机消息的人，一个项目填一个ID"),
   guildId:Schema.dict(Schema.string())
     .role("table")
-    .description("会发送消息的群聊ID，不添加项目则代表该平台所有频道，不填写频道ID则代表不在该平台发消息\n\n键为平台（平台名以右下角状态栏为准），值为频道ID（频道ID间以半角逗号隔开）"),
+    .description("会发送消息的群聊ID，不填写平台名及ID代表该平台所有群，填写平台名不填写频道ID则代表不在该平台发消息\n\n键为平台（平台名以右下角状态栏为准），值为频道ID（频道ID间以半角逗号隔开）"),
   globalMessageList:Schema.array(Schema.string())
     .description("全局随机消息，但不会显示在随机消息列表里"),
   minInterval:Schema.number()
@@ -43,6 +44,9 @@ export const Config: Schema<Config> = Schema.object({
     .default(false),
   pageLimit:Schema.number()
     .description("列表每页显示多少条随机消息")
+    .default(5),
+  maxRetry:Schema.number()
+    .description("发送失败后的最大重试次数")
     .default(5)
 })
 
@@ -71,6 +75,7 @@ export function apply(ctx: Context, config: Config) {
           for await (let guild of bot.getGuildIter()) {
             guilds.push(guild)
           }
+          let retry = 0
           while (true) {
             let guildId = Random.pick(guilds).id
             let data = await ctx.database.get("randomMessageData", {$or: [{activeZone: "global"}, {activeZone: guildId}]})
@@ -84,21 +89,28 @@ export function apply(ctx: Context, config: Config) {
               await bot.sendMessage(guildId, send)
               break
             } catch (e) {
-              let channels = []
-              for await (let channel of bot.getChannelIter(guildId)) {
-                channels.push(channel)
-              }
-              let channelId = Random.pick(channels).id
               try {
+                let channels = []
+                for await (let channel of bot.getChannelIter(guildId)) {
+                  if (channel.type === 0) channels.push(channel)
+                }
+                let channelId = Random.pick(channels).id
                 await bot.sendMessage(channelId, send)
+                break
               } catch (e) {
+                retry++
+                if (retry > config.maxRetry) {
+                  let logger = new Logger("random-send")
+                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e)
+                  break
+                }
                 continue
               }
-              break
             }
           }
         } else {
-          if (guilds.length === 0) continue
+          if (guilds === null || guilds.length === 0) continue
+          let retry = 0
           while (true) {
             let guildId = Random.pick(guilds.split(","))
             let data = await ctx.database.get("randomMessageData", {$or: [{activeZone: "global"}, {activeZone: guildId}]})
@@ -112,20 +124,25 @@ export function apply(ctx: Context, config: Config) {
               await bot.sendMessage(guildId as string, send)
               break
             } catch (e) { 
-              let channels = []
-              for await (let channel of bot.getChannelIter(guildId as string)) {
-                channels.push(channel)
-              }
-              let channelId = Random.pick(channels).id
               try {
+                let channels = []
+                for await (let channel of bot.getChannelIter(guildId as string)) {
+                  if (channel.type === 0) channels.push(channel)
+                }
+                let channelId = Random.pick(channels).id
                 await bot.sendMessage(channelId, send)
+                break
               } catch (e) {
+                retry++
+                if (retry > config.maxRetry) {
+                  let logger = new Logger("random-send")
+                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e)
+                  break
+                }
                 continue
               }
-              break
             }
           }
-
         } 
       }
     }
