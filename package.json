@@ -14,7 +14,6 @@
     "type": "git",
     "url": "git+https://github.com/windbullet/koishi-plugin-random-send.git"
   },
-  "scripts": {},
   "keywords": [
     "chatbot",
     "koishi",
@@ -25,10 +24,11 @@
   },
   "koishi": {
     "service": {
-      "required": ["database"],    
-      "optional": [],       
+      "required": [
+        "database"
+      ],
+      "optional": [],
       "implements": []
     }
   }
 }
-
