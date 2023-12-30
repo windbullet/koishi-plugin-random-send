@@ -101,7 +101,7 @@ export function apply(ctx: Context, config: Config) {
                 retry++
                 if (retry > config.maxRetry) {
                   let logger = new Logger("random-send")
-                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e)
+                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e.stack)
                   break
                 }
                 continue
@@ -136,7 +136,7 @@ export function apply(ctx: Context, config: Config) {
                 retry++
                 if (retry > config.maxRetry) {
                   let logger = new Logger("random-send")
-                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e)
+                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e.stack)
                   break
                 }
                 continue
