@@ -23,6 +23,8 @@ export interface Config {
   noRepeat: boolean
   pageLimit: number
   maxRetry: number
+  retryInterval: number
+  debugMode: boolean
 }
 
 export const Config: Schema<Config> = Schema.object({
@@ -47,7 +49,13 @@ export const Config: Schema<Config> = Schema.object({
     .default(5),
   maxRetry:Schema.number()
     .description("发送失败后的最大重试次数")
-    .default(5)
+    .default(5),
+  retryInterval: Schema.number()
+    .description('发送失败后的重试间隔（毫秒）')
+    .default(500),
+  debugMode: Schema.boolean()
+    .description('发送失败时，在日志显示调用栈')
+    .default(false)
 })
 
 export const inject = ["database"]
@@ -99,11 +107,13 @@ export function apply(ctx: Context, config: Config) {
                 break
               } catch (e) {
                 retry++
+                let logger = new Logger('re-driftbottle')
                 if (retry > config.maxRetry) {
-                  let logger = new Logger("random-send")
-                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e.stack)
+                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
                   break
                 }
+                logger.warn(`随机消息发送失败（已重试${retry-1}/${config.maxRetry}次，将在${config.retryInterval}ms后重试）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
+                await sleep(config.retryInterval)
                 continue
               }
             }
@@ -134,11 +144,13 @@ export function apply(ctx: Context, config: Config) {
                 break
               } catch (e) {
                 retry++
+                let logger = new Logger('re-driftbottle')
                 if (retry > config.maxRetry) {
-                  let logger = new Logger("random-send")
-                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：` + e.stack)
+                  logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
                   break
                 }
+                logger.warn(`随机消息发送失败（已重试${retry-1}/${config.maxRetry}次，将在${config.retryInterval}ms后重试）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
+                await sleep(config.retryInterval)
                 continue
               }
             }
