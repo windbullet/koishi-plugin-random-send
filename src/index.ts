@@ -1,4 +1,5 @@
 import { Context, Schema, sleep, Random, h, Dict, Logger } from 'koishi'
+import {} from "@koishijs/plugin-notifier"
 
 export const name = 'random-send'
 
@@ -58,7 +59,7 @@ export const Config: Schema<Config> = Schema.object({
     .default(false)
 })
 
-export const inject = ["database"]
+export const inject = ["database", "notifier"]
 
 export const usage = `
 在设定的范围内取随机值间隔，到达后随机抽一个群，在随机消息列表内抽一条消息发送  
@@ -70,12 +71,22 @@ export const usage = `
 `
 
 export function apply(ctx: Context, config: Config) {
+  const notifier = ctx.notifier.create()
   extendTable(ctx)
   let lastSend = {}
 
+  async function countdown(time:number) {
+    for (let i = time; i >= 0; i--) {
+      notifier.update(`下一条随机消息将在 ${i} 秒后发送`)
+      await ctx.sleep(1000)
+    }
+  }
+
   ctx.on("ready", async () => {
     while(true) {
-      await new Promise(res => ctx.setTimeout(res, Random.int(config.minInterval * 1000, config.maxInterval * 1000 + 1)))
+      let wait = Random.int(config.minInterval, config.maxInterval + 1)
+      countdown(wait)
+      await ctx.sleep(wait * 1000)
       for (let bot of ctx.bots) {
         let guilds = config.guildId[bot.platform]
         if (guilds === undefined) {
@@ -107,7 +118,7 @@ export function apply(ctx: Context, config: Config) {
                 break
               } catch (e) {
                 retry++
-                let logger = new Logger('re-driftbottle')
+                let logger = new Logger('random-send')
                 if (retry > config.maxRetry) {
                   logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
                   break
@@ -144,7 +155,7 @@ export function apply(ctx: Context, config: Config) {
                 break
               } catch (e) {
                 retry++
-                let logger = new Logger('re-driftbottle')
+                let logger = new Logger('random-send')
                 if (retry > config.maxRetry) {
                   logger.warn(`随机消息发送失败（已重试${config.maxRetry}次）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
                   break
