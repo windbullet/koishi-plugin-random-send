@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-random-send",
   "description": "随机时刻发送随机任意文本",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -20,7 +20,7 @@
     "plugin"
   ],
   "peerDependencies": {
-    "koishi": "^4.16.4"
+    "koishi": "^4.17.1"
   },
   "koishi": {
     "service": {

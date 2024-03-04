@@ -1,4 +1,4 @@
-import { Context, Schema, sleep, Random, h, Dict, Logger } from 'koishi'
+import { Context, Schema, Random, h, Dict, Logger } from 'koishi'
 import {} from "@koishijs/plugin-notifier"
 
 export const name = 'random-send'
@@ -78,7 +78,11 @@ export function apply(ctx: Context, config: Config) {
   async function countdown(time:number) {
     for (let i = time; i >= 0; i--) {
       notifier.update(`下一条随机消息将在 ${i} 秒后发送`)
-      await ctx.sleep(1000)
+      try {
+        await ctx.sleep(1000)
+      } catch {
+        return
+      }
     }
   }
 
@@ -86,7 +90,11 @@ export function apply(ctx: Context, config: Config) {
     while(true) {
       let wait = Random.int(config.minInterval, config.maxInterval + 1)
       countdown(wait)
-      await ctx.sleep(wait * 1000)
+      try {
+        await ctx.sleep(wait * 1000)
+      } catch {
+        return
+      }
       for (let bot of ctx.bots) {
         let guilds = config.guildId[bot.platform]
         if (guilds === undefined) {
@@ -124,7 +132,12 @@ export function apply(ctx: Context, config: Config) {
                   break
                 }
                 logger.warn(`随机消息发送失败（已重试${retry-1}/${config.maxRetry}次，将在${config.retryInterval}ms后重试）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
-                await sleep(config.retryInterval)
+                
+                try {
+                  await ctx.sleep(config.retryInterval)
+                } catch  {
+                  return
+                }
                 continue
               }
             }
@@ -161,7 +174,11 @@ export function apply(ctx: Context, config: Config) {
                   break
                 }
                 logger.warn(`随机消息发送失败（已重试${retry-1}/${config.maxRetry}次，将在${config.retryInterval}ms后重试）：${config.debugMode ? e.stack : e.name + ": " + e.message}`)
-                await sleep(config.retryInterval)
+                try {
+                  await ctx.sleep(config.retryInterval)
+                } catch {
+                  return
+                }
                 continue
               }
             }
